@@ -1,0 +1,8 @@
+# Ultralytics dataset description (one class: players and NPCs are both 'character').
+# Paths are relative to this file's folder; train.py converts them to absolute paths.
+path: dataset
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: character

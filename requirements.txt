@@ -1,0 +1,9 @@
+# Python 3.10 - 3.12 recommended (64-bit, Windows 10/11)
+ultralytics>=8.3        # YOLO + ByteTrack (pulls in PyTorch, NumPy, PyYAML)
+opencv-python>=4.8      # image processing
+mss>=9.0                # screen capture
+PyQt6>=6.5              # transparent overlay + control panel
+numpy>=1.24
+lap>=0.5.12            # linear assignment used by ByteTrack (ultralytics tries to auto-install it)
+PyYAML>=6.0
+pytest>=7.0             # only needed to run the tests in tests/

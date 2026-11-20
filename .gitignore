@@ -1,0 +1,15 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+runs/
+config.json
+capture_test.png
+detection_test/
+dataset/raw_images/*
+dataset/images/
+dataset/labels/
+dataset/cvat_export/*
+!dataset/raw_images/.gitkeep
+!dataset/cvat_export/.gitkeep
+models/*.pt
