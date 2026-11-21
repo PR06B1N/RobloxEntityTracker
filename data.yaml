@@ -1,8 +1,11 @@
-# Ultralytics dataset description (one class: players and NPCs are both 'character').
+# Ultralytics dataset description. Class names come from CLASS_NAMES in config.py.
 # Paths are relative to this file's folder; train.py converts them to absolute paths.
 path: dataset
 train: images/train
 val: images/val
 test: images/test
 names:
-  0: character
+  0: body
+  1: head
+  2: objects
+  3: teammate

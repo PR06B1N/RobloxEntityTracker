@@ -22,7 +22,7 @@ DATA_YAML = ROOT / "data.yaml"
 CONFIG_PATH = ROOT / "config.json"
 DEFAULT_MODEL_PATH = MODELS_DIR / "best.pt"
 
-CLASS_NAMES = ["character"]  # single detection class (players and NPCs alike)
+CLASS_NAMES = ["body", "head", "objects", "teammate"] 
 
 
 def _clamp(value, low, high):

@@ -1,0 +1,26 @@
+{
+  "trained_at": "2026-11-21T18:26:15",
+  "start_weights": "yolo11s.pt",
+  "epochs_requested": 60,
+  "imgsz": 640,
+  "device": "0",
+  "dataset_images": {
+    "train": 2871,
+    "val": 826,
+    "test": 411
+  },
+  "ultralytics": "8.4.216",
+  "python": "3.13.16",
+  "validation": {
+    "precision": 0.9555770786702609,
+    "recall": 0.8298634293475455,
+    "mAP50": 0.9032979718201629,
+    "mAP50-95": 0.4068851598452108
+  },
+  "test": {
+    "precision": 0.8207808194279566,
+    "recall": 0.8262122881776478,
+    "mAP50": 0.8847141799303948,
+    "mAP50-95": 0.40489767907380814
+  }
+}

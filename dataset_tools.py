@@ -9,8 +9,8 @@ What `import-cvat` does
 -----------------------
 1. Finds every image and its YOLO label file inside the CVAT export
    (works with CVAT's "YOLO 1.1" and "Ultralytics YOLO Detection 1.0" formats).
-2. Cleans the labels: single class `character` (id 0), values clipped to 0..1,
-   broken lines dropped and reported.
+2. Cleans the labels: class ids must exist in CLASS_NAMES (config.py), values clipped
+   to 0..1, broken lines dropped and reported.
 3. Splits into train / val / test **by blocks of consecutive screenshots**, so
    near-identical neighbouring frames never end up on both sides of the split
    (that would make validation scores look better than reality).
@@ -63,8 +63,8 @@ def clean_label_text(text: str) -> tuple[list[str], list[str]]:
         except ValueError:
             warnings.append(f"line {n}: non-numeric value - dropped")
             continue
-        if cls != 0:
-            warnings.append(f"line {n}: class id {cls} is not 0 ('character') - dropped")
+        if not 0 <= cls < len(CLASS_NAMES):
+            warnings.append(f"line {n}: class id {cls} is not one of {list(enumerate(CLASS_NAMES))} - dropped")
             continue
         if not all(math.isfinite(v) for v in (x, y, w, h)):
             warnings.append(f"line {n}: NaN/inf value - dropped")
@@ -77,7 +77,7 @@ def clean_label_text(text: str) -> tuple[list[str], list[str]]:
             continue
         if (x1, y1, x2, y2) != (x - w / 2, y - h / 2, x + w / 2, y + h / 2):
             warnings.append(f"line {n}: box extended outside the image - clipped")
-        clean.append(f"0 {(x1 + x2) / 2:.6f} {(y1 + y2) / 2:.6f} {x2 - x1:.6f} {y2 - y1:.6f}")
+        clean.append(f"{cls} {(x1 + x2) / 2:.6f} {(y1 + y2) / 2:.6f} {x2 - x1:.6f} {y2 - y1:.6f}")
     return clean, warnings
 
 
@@ -106,8 +106,17 @@ def locate_pairs(root: Path) -> tuple[list[tuple[Path, Optional[Path]]], list[Pa
 _NAME_RE = re.compile(r"^(?P<session>.+)_(?P<num>\d+)$")
 
 
+_RF_SUFFIX_RE = re.compile(r"_(?:jpe?g|png|bmp|webp)\.rf\.[0-9a-f]+$", re.IGNORECASE)
+_SPLIT_PREFIX_RE = re.compile(r"^(?:train|valid|val|test)_", re.IGNORECASE)
+
+
 def group_key(stem: str, block: int) -> str:
-    """'s1-session_00042' with block=25 -> 's1-session:1'. Unknown names are their own group."""
+    """'s1-session_00042' with block=25 -> 's1-session:1'. Unknown names are their own group.
+
+    Roboflow names ('train_frame_0393_jpg.rf.<hash>') are reduced to 'frame_0393' first, so
+    augmented copies of one frame - and neighbouring frames - stay on the same side of the split.
+    """
+    stem = _SPLIT_PREFIX_RE.sub("", _RF_SUFFIX_RE.sub("", stem))
     m = _NAME_RE.match(stem)
     if not m:
         return stem
@@ -168,7 +177,7 @@ class ImportSummary:
 def write_data_yaml(path: Path = DATA_YAML) -> None:
     names = "\n".join(f"  {i}: {n}" for i, n in enumerate(CLASS_NAMES))
     path.write_text(
-        "# Ultralytics dataset description (one class: players and NPCs are both 'character').\n"
+        "# Ultralytics dataset description. Class names come from CLASS_NAMES in config.py.\n"
         "# Paths are relative to this file's folder; train.py converts them to absolute paths.\n"
         "path: dataset\n"
         "train: images/train\n"
@@ -248,6 +257,7 @@ class SplitReport:
     background: int = 0       # images with an empty label file
     boxes: int = 0
     tiny_boxes: int = 0       # box smaller than 1% of image width or height
+    per_class: dict = field(default_factory=dict)   # class id -> number of boxes
     issues: list = field(default_factory=list)
 
 
@@ -271,6 +281,7 @@ def validate_dataset(dest: Path = DATASET_DIR) -> dict[str, SplitReport]:
                 rep.background += 1
             rep.boxes += len(lines)
             for ln in lines:
+                rep.per_class[int(ln.split()[0])] = rep.per_class.get(int(ln.split()[0]), 0) + 1
                 _, _, _, w, h = (float(v) for v in ln.split())
                 if w < 0.01 or h < 0.01:
                     rep.tiny_boxes += 1
@@ -286,6 +297,9 @@ def print_report(reports: dict[str, SplitReport]) -> None:
     for split, r in reports.items():
         print(f"{split:<7}{r.images:>8}{r.boxes:>8}{r.background:>12}{r.tiny_boxes:>12}")
     print(f"total images: {total_images}")
+    for i, name in enumerate(CLASS_NAMES):
+        per = ", ".join(f"{s}={r.per_class.get(i, 0)}" for s, r in reports.items())
+        print(f"  class {i} '{name}' boxes: {per}")
     if total_images < 500:
         print("NOTE: the project target is ~500-1000 varied labelled images; fewer images means weaker detection.")
     for split, r in reports.items():
